@@ -1,11 +1,18 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel, Field
 from joblib import load
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+
+templates = Jinja2Templates(directory="templates")
+
 
 app = FastAPI()
-@app.on_event("startup")
-def load_model():
-    app.model = load("model/final_model.joblib")
+
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request":  request})
+
 
 class Input(BaseModel):
     sepal_length: float = Field(gt=0, description="The sepal length in cm, must be greater than zero")
@@ -18,6 +25,9 @@ class Output(BaseModel):
     label: float
     probs: dict
 
+@app.on_event("startup")
+def load_model():
+    app.model = load("model/final_model.joblib")
 
 @app.post("/predict", response_model=Output)
 def model_predict(input: Input): #or async def?
